@@ -15,6 +15,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.Item;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -41,6 +42,7 @@ public class AimAssist extends Module {
     private final BooleanValue throughWalls = new BooleanValue("Through Walls", false);
     private final BooleanValue disableOnTarget = new BooleanValue("Disable on target", false);
     private final BooleanValue ignoreBlocks = new BooleanValue("Ignore Blocks", true);
+    private final BooleanValue aimNearestPoint = new BooleanValue("Aim Nearest Point", false);
 
     private final BooleanValue prediction = new BooleanValue("Prediction", false);
     private final ModeValue predictionMode = new cn.jeyor1337.foxsense.base.value.ModeValue(
@@ -62,7 +64,7 @@ public class AimAssist extends Module {
                 maxYawSpeed, minYawSpeed, maxPitchSpeed, minPitchSpeed, fov, range, smoothing,
                 pitchThreshold,
                 pitchEnabled, targetPlayers, targetMobs, weaponsOnly, throughWalls, disableOnTarget, ignoreBlocks,
-                prediction, predictionMode, predictionStrength);
+                aimNearestPoint, prediction, predictionMode, predictionStrength);
     }
 
     @EventTarget
@@ -105,8 +107,8 @@ public class AimAssist extends Module {
             if (!throughWalls.isEnabled() && !mc.player.canSee(currentTarget))
                 return;
 
-            Vec3d chestPos = getChestPosition(currentTarget);
-            float[] rotation = calculateRotation(chestPos);
+            Vec3d aimPos = getAimPosition(currentTarget);
+            float[] rotation = calculateRotation(aimPos);
             applySmoothAiming(rotation[0], rotation[1]);
         }
     }
@@ -126,8 +128,8 @@ public class AimAssist extends Module {
             if (distance > range.getValue().doubleValue())
                 continue;
 
-            Vec3d chestPos = getChestPosition(entity);
-            float[] rotation = calculateRotation(chestPos);
+            Vec3d aimPos = getAimPosition(entity);
+            float[] rotation = calculateRotation(aimPos);
             double fovDistance = getFOVDistance(rotation[0], rotation[1]);
 
             if (fovDistance <= fov.getValue().doubleValue() / 2.0) {
@@ -151,8 +153,8 @@ public class AimAssist extends Module {
         return entity instanceof PlayerEntity ? targetPlayers.isEnabled() : targetMobs.isEnabled();
     }
 
-    private Vec3d getChestPosition(Entity entity) {
-        Vec3d basePos = new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
+    private Vec3d getAimPosition(Entity entity) {
+        Vec3d basePos = aimNearestPoint.isEnabled() ? getNearestPoint(entity) : getChestPosition(entity);
 
         if (!prediction.isEnabled()) {
             return basePos;
@@ -177,6 +179,30 @@ public class AimAssist extends Module {
         }
 
         return predictedPos;
+    }
+
+    private Vec3d getChestPosition(Entity entity) {
+        double centerX = entity.getX();
+        double centerY;
+        double centerZ = entity.getZ();
+
+        if (entity instanceof LivingEntity) {
+            LivingEntity livingEntity = (LivingEntity) entity;
+            centerY = entity.getY() + livingEntity.getHeight() / 2.0;
+        } else {
+            centerY = entity.getY();
+        }
+
+        return new Vec3d(centerX, centerY, centerZ);
+    }
+
+    private Vec3d getNearestPoint(Entity entity) {
+        Vec3d eyePos = mc.player.getEyePos();
+        Box box = entity.getBoundingBox();
+        double x = MathHelper.clamp(eyePos.x, box.minX, box.maxX);
+        double y = MathHelper.clamp(eyePos.y, box.minY, box.maxY);
+        double z = MathHelper.clamp(eyePos.z, box.minZ, box.maxZ);
+        return new Vec3d(x, y, z);
     }
 
     private Vec3d predictSimple(Vec3d basePos, Vec3d velocity, float strength) {
