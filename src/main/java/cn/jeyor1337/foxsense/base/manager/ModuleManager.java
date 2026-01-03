@@ -41,6 +41,9 @@ public class ModuleManager {
         this.registerModule(new STap());
         this.registerModule(new Sprint());
         this.registerModule(new HUD());
+
+        modules.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName()));
+        modulesByType.values().forEach(list -> list.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName())));
     }
 
     public void registerModule(Module module) {

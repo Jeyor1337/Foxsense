@@ -7,6 +7,7 @@ import cn.jeyor1337.foxsense.base.module.Module;
 import cn.jeyor1337.foxsense.base.module.ModuleType;
 import cn.jeyor1337.foxsense.base.util.item.ItemUtils;
 import cn.jeyor1337.foxsense.base.value.BooleanValue;
+import cn.jeyor1337.foxsense.base.value.ModeValue;
 import cn.jeyor1337.foxsense.base.value.NumberValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -22,13 +23,17 @@ public class AimAssist extends Module {
     private final NumberValue maxYawSpeed = new NumberValue("Max Yaw Speed", 2.0, 0.1, 5.0, 0.1);
     private final NumberValue minYawSpeed = new NumberValue("Min Yaw Speed", 2.0, 0.1, 5.0, 0.1);
 
-    private final NumberValue minPitchSpeed = new NumberValue("Min Pitch Speed", 2.0, 0.1, 5.0, 0.1);
-    private final NumberValue maxPitchSpeed = new NumberValue("Max Pitch Speed", 2.0, 0.1, 5.0, 0.1);
+    private final BooleanValue pitchEnabled = new BooleanValue("Pitch", true);
+    private final NumberValue minPitchSpeed = new NumberValue("Min Pitch Speed", 2.0, 0.1, 5.0, 0.1,
+            pitchEnabled::getValue);
+    private final NumberValue maxPitchSpeed = new NumberValue("Max Pitch Speed", 2.0, 0.1, 5.0, 0.1,
+            pitchEnabled::getValue);
 
     private final NumberValue fov = new NumberValue("FOV", 90.0, 10.0, 180.0, 1.0);
     private final NumberValue range = new NumberValue("Range", 4.5, 1.0, 10.0, 0.1);
-    private final NumberValue smoothing = new NumberValue("Smoothing", 10.0, 1.0, 20.0, 0.5);
-    private final NumberValue pitchThreshold = new NumberValue("Pitch Threshold", 60.0, 0.0, 90.0, 1.0);
+    private final NumberValue smoothing = new NumberValue("Smoothing", 10.0, 1.0, 100.0, 0.5);
+    private final NumberValue pitchThreshold = new NumberValue("Pitch Threshold", 60.0, 0.0, 90.0, 1.0,
+            pitchEnabled::getValue);
 
     private final BooleanValue targetPlayers = new BooleanValue("Target Players", true);
     private final BooleanValue targetMobs = new BooleanValue("Target Mobs", false);
@@ -37,17 +42,27 @@ public class AimAssist extends Module {
     private final BooleanValue disableOnTarget = new BooleanValue("Disable on target", false);
     private final BooleanValue ignoreBlocks = new BooleanValue("Ignore Blocks", true);
 
+    private final BooleanValue prediction = new BooleanValue("Prediction", false);
+    private final ModeValue predictionMode = new cn.jeyor1337.foxsense.base.value.ModeValue(
+            "Prediction Mode", new String[] { "Simple", "Adaptive", "Acceleration" }, "Simple", prediction::getValue);
+    private final NumberValue predictionStrength = new NumberValue("Prediction Strength", 1.0, 0.0, 2.0, 0.1,
+            prediction::getValue);
+
     private Entity currentTarget = null;
     private long lastUpdateTime = 0;
     private float currentBaseSpeed = 10f;
     private float nextBaseSpeed = 10f;
     private long lastSpeedChangeTime = 0;
+    private Vec3d lastTargetVelocity = Vec3d.ZERO;
+    private long lastPredictionTime = 0;
 
     public AimAssist() {
-        super("Aim Assist", "Gives you assistance on your aim", ModuleType.COMBAT);
+        super("AimAssist", "Gives you assistance on your aim", ModuleType.COMBAT);
         addValues(
-                maxYawSpeed, minYawSpeed, maxPitchSpeed, minPitchSpeed, fov, range, smoothing, pitchThreshold,
-                targetPlayers, targetMobs, weaponsOnly, throughWalls, disableOnTarget, ignoreBlocks);
+                maxYawSpeed, minYawSpeed, maxPitchSpeed, minPitchSpeed, fov, range, smoothing,
+                pitchThreshold,
+                pitchEnabled, targetPlayers, targetMobs, weaponsOnly, throughWalls, disableOnTarget, ignoreBlocks,
+                prediction, predictionMode, predictionStrength);
     }
 
     @EventTarget
@@ -137,7 +152,63 @@ public class AimAssist extends Module {
     }
 
     private Vec3d getChestPosition(Entity entity) {
-        return new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
+        Vec3d basePos = new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
+
+        if (!prediction.isEnabled()) {
+            return basePos;
+        }
+
+        Vec3d velocity = entity.getVelocity();
+        double playerDistance = mc.player.distanceTo(entity);
+        float strength = predictionStrength.getValue().floatValue();
+
+        Vec3d predictedPos = basePos;
+
+        switch (predictionMode.getValue()) {
+            case "Simple":
+                predictedPos = predictSimple(basePos, velocity, strength);
+                break;
+            case "Adaptive":
+                predictedPos = predictAdaptive(basePos, velocity, strength, playerDistance);
+                break;
+            case "Acceleration":
+                predictedPos = predictAcceleration(basePos, velocity, strength, entity);
+                break;
+        }
+
+        return predictedPos;
+    }
+
+    private Vec3d predictSimple(Vec3d basePos, Vec3d velocity, float strength) {
+        return basePos.add(velocity.multiply(strength));
+    }
+
+    private Vec3d predictAdaptive(Vec3d basePos, Vec3d velocity, float strength, double distance) {
+        double maxRange = range.getValue().doubleValue();
+        double distanceFactor = distance / maxRange;
+        double adaptiveStrength = strength * distanceFactor * 1.5;
+        return basePos.add(velocity.multiply(adaptiveStrength));
+    }
+
+    private Vec3d predictAcceleration(Vec3d basePos, Vec3d velocity, float strength, Entity entity) {
+        long currentTime = System.currentTimeMillis();
+        float deltaTime = (currentTime - lastPredictionTime) / 1000.0f;
+
+        if (deltaTime > 0.001f && deltaTime < 0.1f && lastTargetVelocity != Vec3d.ZERO) {
+            Vec3d acceleration = velocity.subtract(lastTargetVelocity).multiply(1.0 / deltaTime);
+
+            double t = strength * 0.5;
+            Vec3d predictedPos = basePos.add(velocity.multiply(t)).add(acceleration.multiply(0.5 * t * t));
+
+            lastTargetVelocity = velocity;
+            lastPredictionTime = currentTime;
+
+            return predictedPos;
+        } else {
+            lastTargetVelocity = velocity;
+            lastPredictionTime = currentTime;
+            return basePos.add(velocity.multiply(strength));
+        }
     }
 
     private float[] calculateRotation(Vec3d target) {
@@ -150,8 +221,12 @@ public class AimAssist extends Module {
 
     private double getFOVDistance(float targetYaw, float targetPitch) {
         float yawDiff = MathHelper.wrapDegrees(targetYaw - mc.player.getYaw());
-        float pitchDiff = targetPitch - mc.player.getPitch();
-        return Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff);
+        if (pitchEnabled.isEnabled()) {
+            float pitchDiff = targetPitch - mc.player.getPitch();
+            return Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff);
+        } else {
+            return Math.abs(yawDiff);
+        }
     }
 
     private void applySmoothAiming(float targetYaw, float targetPitch) {
@@ -177,7 +252,13 @@ public class AimAssist extends Module {
         float yawDiff = MathHelper.wrapDegrees(targetYaw - currentYaw);
         float pitchDiff = targetPitch - currentPitch;
 
-        float distance = (float) Math.hypot(yawDiff, pitchDiff);
+        float distance;
+        if (pitchEnabled.isEnabled()) {
+            distance = (float) Math.hypot(yawDiff, pitchDiff);
+        } else {
+            distance = Math.abs(yawDiff);
+        }
+
         if (distance < 0.3f)
             return;
 
@@ -186,10 +267,13 @@ public class AimAssist extends Module {
 
         float lerpFactor = eased * (smoothing.getValue().floatValue() / 10f) * deltaTime;
         float newYaw = MathHelper.lerp(lerpFactor, currentYaw, currentYaw + yawDiff);
-        float newPitch = MathHelper.lerp(lerpFactor, currentPitch, currentPitch + pitchDiff);
 
         mc.player.setYaw(newYaw);
-        mc.player.setPitch(MathHelper.clamp(newPitch, -89f, 89f));
+
+        if (pitchEnabled.isEnabled()) {
+            float newPitch = MathHelper.lerp(lerpFactor, currentPitch, currentPitch + pitchDiff);
+            mc.player.setPitch(MathHelper.clamp(newPitch, -89f, 89f));
+        }
     }
 
     private float easeOutCubic(float t) {
@@ -231,5 +315,7 @@ public class AimAssist extends Module {
     public void onDisable() {
         super.onDisable();
         currentTarget = null;
+        lastTargetVelocity = Vec3d.ZERO;
+        lastPredictionTime = 0;
     }
 }
