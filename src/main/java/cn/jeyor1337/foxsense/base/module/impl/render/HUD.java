@@ -17,7 +17,8 @@ import net.minecraft.client.gui.DrawContext;
 
 public class HUD extends Module {
     private final Map<Module, Double> animationMap = new HashMap<>();
-    private static final double ANIMATION_SPEED = 0.15;
+    private static final double FADE_IN_SPEED = 0.15;
+    private static final double FADE_OUT_SPEED = 0.25;
 
     public HUD() {
         super("HUD", "Displays client name and module list", ModuleType.RENDER);
@@ -53,12 +54,13 @@ public class HUD extends Module {
 
             double currentOffset = animationMap.get(module);
             double targetOffset = module.isEnabled() ? 1.0 : 0.0;
-            double animatedOffset = AnimationUtil.animate(currentOffset, targetOffset, ANIMATION_SPEED);
+            double speed = targetOffset > currentOffset ? FADE_IN_SPEED : FADE_OUT_SPEED;
+            double animatedOffset = AnimationUtil.animate(currentOffset, targetOffset, speed);
             animationMap.put(module, animatedOffset);
         }
 
         List<Module> modulesToRender = animationMap.entrySet().stream()
-                .filter(entry -> entry.getValue() > 0.01 && entry.getKey() != this)
+                .filter(entry -> entry.getValue() > 0.05 && entry.getKey() != this)
                 .map(Map.Entry::getKey)
                 .sorted(Comparator.comparingInt(m -> -mc.textRenderer.getWidth(m.getName())))
                 .collect(Collectors.toList());
@@ -71,7 +73,7 @@ public class HUD extends Module {
             int textWidth = mc.textRenderer.getWidth(name);
             double animatedOffset = animationMap.get(module);
 
-            int x = (int) (screenWidth - textWidth - 5 - (1.0 - animatedOffset) * 50);
+            int x = (int) (screenWidth - textWidth - 5 + (1.0 - animatedOffset) * (textWidth + 10));
 
             context.drawText(mc.textRenderer, name, x, y, 0xFFFFFFFF, true);
             y += 10;

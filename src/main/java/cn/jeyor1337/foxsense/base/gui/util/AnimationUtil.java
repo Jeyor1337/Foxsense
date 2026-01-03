@@ -2,7 +2,7 @@ package cn.jeyor1337.foxsense.base.gui.util;
 
 public class AnimationUtil {
     public static double animate(double current, double target, double speed) {
-        if (Math.abs(current - target) < 0.001) {
+        if (Math.abs(current - target) < 0.005) {
             return target;
         }
         return current + (target - current) * speed;

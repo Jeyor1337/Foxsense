@@ -7,8 +7,11 @@ import java.util.Map;
 
 import cn.jeyor1337.foxsense.base.module.Module;
 import cn.jeyor1337.foxsense.base.module.ModuleType;
+import cn.jeyor1337.foxsense.base.module.impl.combat.AimAssist;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AntiMiss;
+import cn.jeyor1337.foxsense.base.module.impl.combat.STap;
 import cn.jeyor1337.foxsense.base.module.impl.combat.TriggerBot;
+import cn.jeyor1337.foxsense.base.module.impl.combat.WTap;
 import cn.jeyor1337.foxsense.base.module.impl.misc.TestModule;
 import cn.jeyor1337.foxsense.base.module.impl.movement.Sprint;
 import cn.jeyor1337.foxsense.base.module.impl.render.ClickGuiModule;
@@ -31,8 +34,11 @@ public class ModuleManager {
 
         this.registerModule(new TestModule());
         this.registerModule(new ClickGuiModule());
+        this.registerModule(new AimAssist());
         this.registerModule(new AntiMiss());
         this.registerModule(new TriggerBot());
+        this.registerModule(new WTap());
+        this.registerModule(new STap());
         this.registerModule(new Sprint());
         this.registerModule(new HUD());
     }

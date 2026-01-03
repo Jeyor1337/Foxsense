@@ -2,7 +2,6 @@ package cn.jeyor1337.foxsense.mixin;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -73,8 +72,8 @@ public abstract class MixinClientPlayerEntity {
         Foxsense.getEventManager().call(event);
     }
 
-    @Overwrite
-    private void sendMovementPackets() {
+    @Inject(method = "sendMovementPackets", at = @At("HEAD"), cancellable = true)
+    private void onSendMovementPackets(CallbackInfo ci) {
         this.sendSprintingPacket();
         if (this.isCamera()) {
             ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
@@ -147,5 +146,6 @@ public abstract class MixinClientPlayerEntity {
 
             this.autoJumpEnabled = (Boolean) this.client.options.getAutoJump().getValue();
         }
+        ci.cancel();
     }
 }
