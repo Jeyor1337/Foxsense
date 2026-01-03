@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "foxsense",
+  "version": "${version}",
+  "name": "Foxsense",
+  "description": "Foxsense",
+  "authors": [],
+  "contact": {},
+  "license": "unlicense",
+  "icon": "assets/foxsense/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "cn.jeyor1337.foxsense.client.FoxsenseDataGenerator"
+    ],
+    "client": [
+      "cn.jeyor1337.foxsense.client.FoxsenseClient"
+    ],
+    "main": [
+      "cn.jeyor1337.foxsense.Foxsense"
+    ]
+  },
+  "mixins": [
+    "foxsense.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
