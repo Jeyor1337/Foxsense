@@ -11,7 +11,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "cn.jeyor1337.foxsense.Foxsense"
+      "cn.jeyor1337.foxsense.LaunchWrapper"
     ]
   },
   "mixins": [

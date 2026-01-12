@@ -46,9 +46,9 @@ public class AimAssist extends Module {
 
     private final BooleanValue prediction = new BooleanValue("Prediction", false);
     private final ModeValue predictionMode = new cn.jeyor1337.foxsense.base.value.ModeValue(
-            "Prediction Mode", new String[] { "Simple", "Adaptive", "Acceleration" }, "Simple", prediction::getValue);
+            "Prediction Mode", new String[] { "Simple", "Adaptive", "Smart" }, "Smart", prediction::getValue);
     private final NumberValue predictionStrength = new NumberValue("Prediction Strength", 1.0, 0.0, 2.0, 0.1,
-            prediction::getValue);
+            () -> prediction.getValue() && !predictionMode.getValue().equals("Smart"));
 
     private Entity currentTarget = null;
     private long lastUpdateTime = 0;
@@ -57,6 +57,9 @@ public class AimAssist extends Module {
     private long lastSpeedChangeTime = 0;
     private Vec3d lastTargetVelocity = Vec3d.ZERO;
     private long lastPredictionTime = 0;
+    private Entity lastSmartTarget = null;
+    private Vec3d lastSmartVelocity = Vec3d.ZERO;
+    private long lastSmartUpdateTime = 0;
 
     public AimAssist() {
         super("AimAssist", "Gives you assistance on your aim", ModuleType.COMBAT);
@@ -173,8 +176,8 @@ public class AimAssist extends Module {
             case "Adaptive":
                 predictedPos = predictAdaptive(basePos, velocity, strength, playerDistance);
                 break;
-            case "Acceleration":
-                predictedPos = predictAcceleration(basePos, velocity, strength, entity);
+            case "Smart":
+                predictedPos = predictSmart(basePos, entity, playerDistance);
                 break;
         }
 
@@ -216,25 +219,45 @@ public class AimAssist extends Module {
         return basePos.add(velocity.multiply(adaptiveStrength));
     }
 
-    private Vec3d predictAcceleration(Vec3d basePos, Vec3d velocity, float strength, Entity entity) {
+    private Vec3d predictSmart(Vec3d basePos, Entity target, double distance) {
         long currentTime = System.currentTimeMillis();
-        float deltaTime = (currentTime - lastPredictionTime) / 1000.0f;
+        Vec3d currentVelocity = target.getVelocity();
+        Vec3d playerVelocity = mc.player.getVelocity();
 
-        if (deltaTime > 0.001f && deltaTime < 0.1f && lastTargetVelocity != Vec3d.ZERO) {
-            Vec3d acceleration = velocity.subtract(lastTargetVelocity).multiply(1.0 / deltaTime);
+        Vec3d relativeVelocity = currentVelocity.subtract(playerVelocity);
+        double targetSpeed = currentVelocity.horizontalLength();
 
-            double t = strength * 0.5;
-            Vec3d predictedPos = basePos.add(velocity.multiply(t)).add(acceleration.multiply(0.5 * t * t));
-
-            lastTargetVelocity = velocity;
-            lastPredictionTime = currentTime;
-
-            return predictedPos;
-        } else {
-            lastTargetVelocity = velocity;
-            lastPredictionTime = currentTime;
-            return basePos.add(velocity.multiply(strength));
+        if (targetSpeed < 0.01) {
+            return basePos;
         }
+
+        Vec3d acceleration = Vec3d.ZERO;
+        if (lastSmartTarget == target && lastSmartUpdateTime > 0) {
+            long timeDiff = currentTime - lastSmartUpdateTime;
+            if (timeDiff > 0 && timeDiff < 500) {
+                acceleration = currentVelocity.subtract(lastSmartVelocity).multiply(1000.0 / timeDiff);
+            }
+        }
+
+        lastSmartTarget = target;
+        lastSmartVelocity = currentVelocity;
+        lastSmartUpdateTime = currentTime;
+
+        double aimTime = distance / 3.0;
+        double speedFactor = Math.min(targetSpeed / 0.2, 2.0);
+        double predictionTicks = aimTime * (0.5 + speedFactor * 0.5);
+        predictionTicks = MathHelper.clamp(predictionTicks, 0.5, 5.0);
+
+        double predictionTime = predictionTicks * 0.05;
+
+        Vec3d predictedOffset = relativeVelocity.multiply(predictionTime);
+
+        if (acceleration.lengthSquared() > 0.0001) {
+            Vec3d accelerationOffset = acceleration.multiply(0.5 * predictionTime * predictionTime);
+            predictedOffset = predictedOffset.add(accelerationOffset);
+        }
+
+        return basePos.add(predictedOffset);
     }
 
     private float[] calculateRotation(Vec3d target) {
@@ -343,5 +366,8 @@ public class AimAssist extends Module {
         currentTarget = null;
         lastTargetVelocity = Vec3d.ZERO;
         lastPredictionTime = 0;
+        lastSmartTarget = null;
+        lastSmartVelocity = Vec3d.ZERO;
+        lastSmartUpdateTime = 0;
     }
 }

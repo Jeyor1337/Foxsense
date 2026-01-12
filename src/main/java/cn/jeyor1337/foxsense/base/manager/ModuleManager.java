@@ -9,12 +9,15 @@ import cn.jeyor1337.foxsense.base.module.Module;
 import cn.jeyor1337.foxsense.base.module.ModuleType;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AimAssist;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AntiMiss;
+import cn.jeyor1337.foxsense.base.module.impl.combat.AutoMace;
 import cn.jeyor1337.foxsense.base.module.impl.combat.STap;
+import cn.jeyor1337.foxsense.base.module.impl.combat.StunCob;
 import cn.jeyor1337.foxsense.base.module.impl.combat.TriggerBot;
 import cn.jeyor1337.foxsense.base.module.impl.combat.WTap;
+import cn.jeyor1337.foxsense.base.module.impl.misc.PearlCatch;
 import cn.jeyor1337.foxsense.base.module.impl.misc.TestModule;
 import cn.jeyor1337.foxsense.base.module.impl.movement.Sprint;
-import cn.jeyor1337.foxsense.base.module.impl.render.ClickGuiModule;
+import cn.jeyor1337.foxsense.base.module.impl.render.ClickGui;
 import cn.jeyor1337.foxsense.base.module.impl.render.HUD;
 
 public class ModuleManager {
@@ -33,7 +36,7 @@ public class ModuleManager {
         }
 
         this.registerModule(new TestModule());
-        this.registerModule(new ClickGuiModule());
+        this.registerModule(new ClickGui());
         this.registerModule(new AimAssist());
         this.registerModule(new AntiMiss());
         this.registerModule(new TriggerBot());
@@ -41,6 +44,9 @@ public class ModuleManager {
         this.registerModule(new STap());
         this.registerModule(new Sprint());
         this.registerModule(new HUD());
+        this.registerModule(new AutoMace());
+        this.registerModule(new StunCob());
+        this.registerModule(new PearlCatch());
 
         modules.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName()));
         modulesByType.values().forEach(list -> list.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName())));

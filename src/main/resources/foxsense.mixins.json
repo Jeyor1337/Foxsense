@@ -13,6 +13,7 @@
     "MixinMouse",
     "MixinMinecraftClient",
     "MinecraftClientAccessor",
+    "PlayerInventoryAccessor",
     "MixinClientPlayerInteractionManager",
     "MixinChatScreen"
   ],

@@ -9,4 +9,7 @@ import net.minecraft.client.MinecraftClient;
 public interface MinecraftClientAccessor {
     @Invoker("doAttack")
     boolean invokeDoAttack();
+
+    @Invoker("doItemUse")
+    void invokeDoItemUse();
 }

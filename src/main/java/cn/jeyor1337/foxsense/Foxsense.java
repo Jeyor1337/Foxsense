@@ -14,7 +14,7 @@ import cn.jeyor1337.foxsense.base.manager.ModuleManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.MinecraftClient;
 
-public class Foxsense implements ClientModInitializer {
+public class Foxsense {
     public static final String NAME = "Foxsense";
     private static Foxsense instance;
     private static ModuleManager moduleManager;
@@ -23,7 +23,6 @@ public class Foxsense implements ClientModInitializer {
     private static EventManager eventManager;
     private static MinecraftClient mc;
 
-    @Override
     public void onInitializeClient() {
         instance = this;
         mc = MinecraftClient.getInstance();
