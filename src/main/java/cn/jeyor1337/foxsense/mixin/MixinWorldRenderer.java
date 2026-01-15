@@ -24,6 +24,7 @@ public class MixinWorldRenderer {
             Camera camera, Matrix4f positionMatrix, Matrix4f basicProjectionMatrix, Matrix4f projectionMatrix,
             GpuBufferSlice fogBuffer, Vector4f fogColor, boolean renderSky, CallbackInfo ci) {
         MatrixStack matrices = new MatrixStack();
+        matrices.multiplyPositionMatrix(positionMatrix);
         EventRender3D event = new EventRender3D(matrices, tickCounter.getDynamicDeltaTicks());
         Foxsense.getEventManager().call(event);
     }

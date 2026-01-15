@@ -16,9 +16,15 @@ import cn.jeyor1337.foxsense.base.module.impl.combat.TriggerBot;
 import cn.jeyor1337.foxsense.base.module.impl.combat.WTap;
 import cn.jeyor1337.foxsense.base.module.impl.misc.PearlCatch;
 import cn.jeyor1337.foxsense.base.module.impl.misc.TestModule;
+import cn.jeyor1337.foxsense.base.module.impl.movement.AutoHeadHitter;
 import cn.jeyor1337.foxsense.base.module.impl.movement.Sprint;
+import cn.jeyor1337.foxsense.base.module.impl.player.AutoMLG;
+import cn.jeyor1337.foxsense.base.module.impl.player.AutoTool;
 import cn.jeyor1337.foxsense.base.module.impl.render.ClickGui;
+import cn.jeyor1337.foxsense.base.module.impl.render.FullBright;
 import cn.jeyor1337.foxsense.base.module.impl.render.HUD;
+import cn.jeyor1337.foxsense.base.module.impl.render.XRay;
+import cn.jeyor1337.foxsense.base.module.impl.world.SpeedMine;
 
 public class ModuleManager {
     private final List<Module> modules;
@@ -47,6 +53,12 @@ public class ModuleManager {
         this.registerModule(new AutoMace());
         this.registerModule(new StunCob());
         this.registerModule(new PearlCatch());
+        this.registerModule(new AutoHeadHitter());
+        this.registerModule(new AutoTool());
+        this.registerModule(new AutoMLG());
+        this.registerModule(new FullBright());
+        this.registerModule(new XRay());
+        this.registerModule(new SpeedMine());
 
         modules.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName()));
         modulesByType.values().forEach(list -> list.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName())));

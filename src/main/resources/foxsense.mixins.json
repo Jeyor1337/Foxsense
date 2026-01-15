@@ -15,7 +15,8 @@
     "MinecraftClientAccessor",
     "PlayerInventoryAccessor",
     "MixinClientPlayerInteractionManager",
-    "MixinChatScreen"
+    "MixinChatScreen",
+    "MixinPlayerEntity"
   ],
   "injectors": {
     "defaultRequire": 1

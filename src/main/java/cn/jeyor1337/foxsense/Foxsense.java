@@ -11,7 +11,6 @@ import cn.jeyor1337.foxsense.base.event.EventKey;
 import cn.jeyor1337.foxsense.base.manager.CommandManager;
 import cn.jeyor1337.foxsense.base.manager.ConfigManager;
 import cn.jeyor1337.foxsense.base.manager.ModuleManager;
-import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.MinecraftClient;
 
 public class Foxsense {
@@ -44,6 +43,10 @@ public class Foxsense {
 
     @EventTarget
     public void onKey(EventKey event) {
+        if (mc.currentScreen != null) {
+            return;
+        }
+
         if (event.getAction() == 1) {
             moduleManager.handleKeybind(event.getKey());
         }

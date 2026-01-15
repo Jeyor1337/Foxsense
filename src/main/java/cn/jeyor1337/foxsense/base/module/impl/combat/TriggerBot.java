@@ -183,8 +183,7 @@ public class TriggerBot extends Module {
                 && !mc.player.isClimbing()
                 && !mc.player.isInLava()
                 && !mc.player.hasStatusEffect(StatusEffects.BLINDNESS)
-                && mc.player.fallDistance > 0.065f
-                && mc.player.getVehicle() == null;
+                && mc.player.fallDistance > 0.065f;
     }
 
     private boolean setPreferCrits() {
