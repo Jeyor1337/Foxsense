@@ -9,6 +9,7 @@ public class SpeedMine extends Module {
 
     public SpeedMine() {
         super("SpeedMine", ModuleType.WORLD);
+        this.addValues(speed);
     }
 
     public Float getSpeed() {

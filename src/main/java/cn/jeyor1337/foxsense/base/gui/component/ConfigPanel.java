@@ -1,6 +1,5 @@
 package cn.jeyor1337.foxsense.base.gui.component;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,14 +21,8 @@ public class ConfigPanel extends Component {
 
     private void loadConfigs() {
         configs.clear();
-        File configDir = new File("foxsense/configs");
-        if (configDir.exists() && configDir.isDirectory()) {
-            File[] files = configDir.listFiles((dir, name) -> name.endsWith(".json"));
-            if (files != null) {
-                for (File file : files) {
-                    configs.add(file.getName().replace(".json", ""));
-                }
-            }
+        for (cn.jeyor1337.foxsense.base.config.Config config : Foxsense.getConfigManager().getConfigs()) {
+            configs.add(config.getName());
         }
     }
 

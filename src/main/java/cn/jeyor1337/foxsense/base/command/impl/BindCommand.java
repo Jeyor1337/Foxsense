@@ -30,7 +30,8 @@ public class BindCommand extends Command {
         int keyCode = getKeyCode(keyName);
 
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
-            sendError("无效的按键: " + keyName);
+            sendMessage("模块 §b" + module.getName() + " §f已绑定到按键 §bNONE");
+            module.setKeybind(GLFW.GLFW_KEY_UNKNOWN);
             return;
         }
 

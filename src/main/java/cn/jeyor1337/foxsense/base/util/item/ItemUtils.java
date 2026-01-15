@@ -17,6 +17,10 @@ public class ItemUtils {
                 item == Items.NETHERITE_SWORD;
     }
 
+    public static boolean isShieldItem(Item item) {
+        return item == Items.SHIELD;
+    }
+
     public static boolean hasItem(Item item) {
         if (mc.player == null)
             return false;
@@ -43,6 +47,37 @@ public class ItemUtils {
 
     public static void swapToSlot(Item item) {
         int slot = findSlot(item);
+        if (slot != -1 && mc.player != null) {
+            ((cn.jeyor1337.foxsense.mixin.PlayerInventoryAccessor) mc.player.getInventory()).setSelectedSlot(slot);
+        }
+    }
+
+    public static boolean hasWeapon(Class<? extends Item> itemClass) {
+        if (mc.player == null)
+            return false;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && itemClass.isInstance(stack.getItem())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int findWeaponSlot(Class<? extends Item> itemClass) {
+        if (mc.player == null)
+            return -1;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && itemClass.isInstance(stack.getItem())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static void swapToWeapon(Class<? extends Item> itemClass) {
+        int slot = findWeaponSlot(itemClass);
         if (slot != -1 && mc.player != null) {
             ((cn.jeyor1337.foxsense.mixin.PlayerInventoryAccessor) mc.player.getInventory()).setSelectedSlot(slot);
         }

@@ -22,6 +22,19 @@ public class ConfigManager {
         if (!configDir.exists()) {
             configDir.mkdirs();
         }
+
+        loadExistingConfigs();
+    }
+
+    private void loadExistingConfigs() {
+        File[] files = configDir.listFiles((dir, name) -> name.endsWith(".json"));
+        if (files != null) {
+            for (File file : files) {
+                String configName = file.getName().replace(".json", "");
+                Config config = new Config(configDir, configName, moduleManager);
+                configs.add(config);
+            }
+        }
     }
 
     public void setCurrentConfig(Config config) {

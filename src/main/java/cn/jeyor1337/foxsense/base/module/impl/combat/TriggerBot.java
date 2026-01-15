@@ -41,7 +41,10 @@ public class TriggerBot extends Module {
     private final BooleanValue ignorePassiveMobs = new BooleanValue("No Passive", true);
     private final BooleanValue ignoreInvisible = new BooleanValue("No Invisible", true);
     private final BooleanValue ignoreCrystals = new BooleanValue("No Crystals", true);
+    private final BooleanValue autoUnBlock = new BooleanValue("Auto UnBlock", false);
+    private final BooleanValue autoUnSprint = new BooleanValue("Auto UnSprint", false);
     private final BooleanValue respectShields = new BooleanValue("Ignore Shields", false);
+    private final BooleanValue ignoreUsing = new BooleanValue("Ignore Using Item", false);
     private final BooleanValue useOnlySwordOrAxe = new BooleanValue("Only Sword or Axe", true);
     private final BooleanValue onlyWhenMouseDown = new BooleanValue("Only Mouse Hold", false);
     private final BooleanValue samePlayer = new BooleanValue("Same Player", false);
@@ -66,8 +69,9 @@ public class TriggerBot extends Module {
                 axePostDelayMin, axePostDelayMax,
                 reactionTimeMin, reactionTimeMax,
                 cooldownMode, critMode,
+                autoUnBlock, autoUnSprint,
                 ignorePassiveMobs, ignoreCrystals,
-                respectShields, ignoreInvisible,
+                respectShields, ignoreUsing, ignoreInvisible,
                 onlyWhenMouseDown, useOnlySwordOrAxe,
                 samePlayer);
     }
@@ -77,7 +81,7 @@ public class TriggerBot extends Module {
         if (isNull())
             return;
 
-        if (mc.player.isUsingItem())
+        if (!ignoreUsing.isEnabled() && !autoUnBlock.isEnabled() && mc.player.isUsingItem())
             return;
 
         if (mc.currentScreen != null)
@@ -183,7 +187,8 @@ public class TriggerBot extends Module {
                 && !mc.player.isClimbing()
                 && !mc.player.isInLava()
                 && !mc.player.hasStatusEffect(StatusEffects.BLINDNESS)
-                && mc.player.fallDistance > 0.065f;
+                && mc.player.fallDistance > 0.065f
+                && mc.player.getVehicle() == null;
     }
 
     private boolean setPreferCrits() {
@@ -283,6 +288,18 @@ public class TriggerBot extends Module {
     }
 
     public void attack() {
+        if (autoUnBlock.isEnabled() && mc.player.isUsingItem()) {
+            Item offhandItem = mc.player.getOffHandStack().getItem();
+            if (ItemUtils.isShieldItem(offhandItem)) {
+                if (mc.interactionManager == null) {
+                    return;
+                }
+                mc.interactionManager.stopUsingItem(mc.player);
+            }
+        }
+        if (autoUnSprint.isEnabled() && mc.player.isSprinting()) {
+            mc.player.setSprinting(false);
+        }
         ((MinecraftClientAccessor) mc).invokeDoAttack();
         if (samePlayer.isEnabled() && target != null) {
             lastTargetUUID = target.getUuidAsString();
