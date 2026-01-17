@@ -21,6 +21,34 @@ public class ItemUtils {
         return item == Items.SHIELD;
     }
 
+    public static boolean isChestplateItem(Item item) {
+        return item == Items.LEATHER_CHESTPLATE ||
+                item == Items.CHAINMAIL_CHESTPLATE ||
+                item == Items.IRON_CHESTPLATE ||
+                item == Items.GOLDEN_CHESTPLATE ||
+                item == Items.DIAMOND_CHESTPLATE ||
+                item == Items.NETHERITE_CHESTPLATE;
+    }
+
+    public static int findChestplateSlot() {
+        if (mc.player == null)
+            return -1;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && isChestplateItem(stack.getItem())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static void swapToChestplate() {
+        int slot = findChestplateSlot();
+        if (slot != -1 && mc.player != null) {
+            ((cn.jeyor1337.foxsense.mixin.PlayerInventoryAccessor) mc.player.getInventory()).setSelectedSlot(slot);
+        }
+    }
+
     public static boolean hasItem(Item item) {
         if (mc.player == null)
             return false;

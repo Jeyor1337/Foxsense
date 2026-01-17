@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.lwjgl.glfw.GLFW;
 
+import cn.jeyor1337.foxsense.Foxsense;
 import cn.jeyor1337.foxsense.base.value.Value;
 import net.minecraft.client.MinecraftClient;
 
@@ -55,6 +56,10 @@ public abstract class Module {
     }
 
     public void setEnabled(boolean enabled) {
+        if (Foxsense.getEventManager() == null) {
+            return;
+        }
+
         if (this.enabled == enabled)
             return;
 

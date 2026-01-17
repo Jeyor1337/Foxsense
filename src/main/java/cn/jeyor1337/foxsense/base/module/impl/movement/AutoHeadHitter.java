@@ -19,7 +19,7 @@ public class AutoHeadHitter extends Module {
     private final TimerUtil jumpTimer = new TimerUtil();
 
     public AutoHeadHitter() {
-        super("Auto Head Hitter", "Auto jumps when there's a solid block above to make u go fast", ModuleType.MOVEMENT);
+        super("AutoHeadHitter", "Auto jumps when there's a solid block above to make u go fast", ModuleType.MOVEMENT);
         this.addValues(jumpDelay, holdingSpace);
     }
 

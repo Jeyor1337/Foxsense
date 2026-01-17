@@ -110,7 +110,9 @@ public class Config {
 
                 if (moduleJson.has("enabled")) {
                     boolean enabled = moduleJson.get("enabled").getAsBoolean();
-                    module.setEnabled(enabled);
+                    if (module.isEnabled() != enabled) {
+                        module.toggle();
+                    }
                 }
 
                 if (moduleJson.has("keybind")) {

@@ -49,6 +49,13 @@ public class ConfigManager {
     }
 
     public Config createConfig(String name, boolean autoLoad) {
+        Config existing = getConfig(name);
+        if (existing != null) {
+            if (autoLoad) {
+                existing.load();
+            }
+            return existing;
+        }
         Config config = new Config(configDir, name, moduleManager);
         configs.add(config);
         if (autoLoad) {

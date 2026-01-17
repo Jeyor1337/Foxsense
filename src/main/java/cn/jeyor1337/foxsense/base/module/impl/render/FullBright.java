@@ -12,6 +12,7 @@ import net.minecraft.entity.effect.StatusEffects;
 
 public class FullBright extends Module {
     private Double previousGamma = null;
+    private String previousMode = "Gamma";
 
     private final ModeValue mode = new ModeValue("Mode", new String[] { "Gamma", "NightVision" }, "Gamma");
 
@@ -40,7 +41,14 @@ public class FullBright extends Module {
         if (isNull())
             return;
 
-        if (mode.getValue().equals("NightVision")) {
+        String currentMode = mode.getValue();
+
+        if (!currentMode.equals(previousMode)) {
+            handleModeSwitch(previousMode, currentMode);
+            previousMode = currentMode;
+        }
+
+        if (currentMode.equals("NightVision")) {
             mc.player.addStatusEffect(new StatusEffectInstance(
                     StatusEffects.NIGHT_VISION,
                     420,
@@ -48,6 +56,15 @@ public class FullBright extends Module {
                     false,
                     false,
                     false));
+        }
+    }
+
+    private void handleModeSwitch(String oldMode, String newMode) {
+        if (oldMode.equals("Gamma") && newMode.equals("NightVision")) {
+            restoreGamma();
+        } else if (oldMode.equals("NightVision") && newMode.equals("Gamma")) {
+            removeNightVision();
+            applyGamma();
         }
     }
 

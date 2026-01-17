@@ -27,6 +27,9 @@ public class AutoMace extends Module {
     private final BooleanValue targetMobs = new BooleanValue("Target Mobs", false);
     private final BooleanValue stunSlam = new BooleanValue("Stun Slam", false);
     private final BooleanValue autoSwitch = new BooleanValue("Auto Switch Mace", true);
+    private final BooleanValue autoTakeOff = new BooleanValue("Auto TakeOff", true);
+    private final NumberValue takeOffRange = new NumberValue("TakeOff Range", 6.0, 3.0, 10.0, 0.5);
+    private final NumberValue takeOffWaitTicks = new NumberValue("TakeOff Wait Ticks", 5.0, 1.0, 20.0, 1.0);
 
     private final TimerUtil attackTimer = new TimerUtil();
     private int savedSlot = -1;
@@ -35,10 +38,14 @@ public class AutoMace extends Module {
     private boolean slamExecuted = false;
     private boolean maceHit = false;
     private int slamTick = 0;
+    private boolean takeOffExecuted = false;
+    private int takeOffTick = 0;
+    private int takeOffWaitCounter = 0;
 
     public AutoMace() {
         super("AutoMace", "Automatically attacks with mace", ModuleType.COMBAT);
-        addValues(minFallDistance, attackDelay, densityThreshold, targetPlayers, targetMobs, stunSlam, autoSwitch);
+        addValues(minFallDistance, attackDelay, densityThreshold, targetPlayers, targetMobs, stunSlam, autoSwitch,
+                autoTakeOff, takeOffRange, takeOffWaitTicks);
     }
 
     @EventTarget
@@ -47,6 +54,7 @@ public class AutoMace extends Module {
             return;
 
         updateFall();
+        processTakeOff();
         attack();
     }
 
@@ -72,6 +80,8 @@ public class AutoMace extends Module {
             slamExecuted = false;
             maceHit = false;
             slamTick = 0;
+            takeOffExecuted = false;
+            takeOffTick = 0;
         } else if (falling && fallStartY != -1 && currentY > fallStartY) {
             fallStartY = currentY;
         }
@@ -89,6 +99,9 @@ public class AutoMace extends Module {
         if (!isValidTarget(target))
             return;
 
+        if (autoTakeOff.isEnabled() && !takeOffExecuted)
+            return;
+
         if (stunSlam.isEnabled()) {
             handleSlam(target, fallDist);
         }
@@ -96,6 +109,48 @@ public class AutoMace extends Module {
         if (!stunSlam.isEnabled() || slamExecuted || slamTick == 0) {
             handleMaceAttack(target);
         }
+    }
+
+    private void processTakeOff() {
+        if (!autoTakeOff.isEnabled() || !isFalling)
+            return;
+
+        if (!hasElytraEquipped()) {
+            takeOffExecuted = true;
+            return;
+        }
+
+        if (takeOffWaitCounter > 0) {
+            takeOffWaitCounter--;
+            if (takeOffWaitCounter == 0) {
+                takeOffExecuted = true;
+            }
+            return;
+        }
+
+        if (takeOffExecuted || takeOffTick > 0)
+            return;
+
+        double fallDist = fallStartY == -1 ? 0 : Math.max(0, fallStartY - mc.player.getY());
+        if (fallDist < minFallDistance.getValue().doubleValue() - 1.0)
+            return;
+
+        Entity nearbyTarget = findNearbyTarget();
+        if (nearbyTarget == null)
+            return;
+
+        int chestplateSlot = findChestplateSlot();
+        if (chestplateSlot == -1)
+            return;
+
+        if (savedSlot == -1)
+            savedSlot = ((PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot();
+
+        ((PlayerInventoryAccessor) mc.player.getInventory()).setSelectedSlot(chestplateSlot);
+        ((MinecraftClientAccessor) mc).invokeDoItemUse();
+
+        takeOffWaitCounter = (int) takeOffWaitTicks.getValue().doubleValue();
+        takeOffTick = 1;
     }
 
     private void handleSlam(Entity target, double fallDist) {
@@ -144,6 +199,15 @@ public class AutoMace extends Module {
         }
     }
 
+    private Entity findNearbyTarget() {
+        for (Entity entity : mc.world.getEntities()) {
+            if (isValidTarget(entity) && mc.player.distanceTo(entity) <= takeOffRange.getValue().doubleValue()) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
     private boolean isValidTarget(Entity entity) {
         if (entity == null || entity == mc.player || entity == mc.getCameraEntity())
             return false;
@@ -172,6 +236,30 @@ public class AutoMace extends Module {
 
     private boolean isAxe(ItemStack stack) {
         return stack.getItem() instanceof AxeItem;
+    }
+
+    private boolean hasElytraEquipped() {
+        ItemStack chestSlot = mc.player.getInventory().getStack(38);
+        return chestSlot != null && chestSlot.getItem() == Items.ELYTRA;
+    }
+
+    private boolean isChestplateItem(ItemStack stack) {
+        return stack.getItem() == Items.LEATHER_CHESTPLATE ||
+                stack.getItem() == Items.CHAINMAIL_CHESTPLATE ||
+                stack.getItem() == Items.IRON_CHESTPLATE ||
+                stack.getItem() == Items.GOLDEN_CHESTPLATE ||
+                stack.getItem() == Items.DIAMOND_CHESTPLATE ||
+                stack.getItem() == Items.NETHERITE_CHESTPLATE;
+    }
+
+    private int findChestplateSlot() {
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && isChestplateItem(stack)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private boolean hasMace() {
@@ -224,6 +312,9 @@ public class AutoMace extends Module {
         slamExecuted = false;
         maceHit = false;
         slamTick = 0;
+        takeOffExecuted = false;
+        takeOffTick = 0;
+        takeOffWaitCounter = 0;
     }
 
     @Override
@@ -234,6 +325,9 @@ public class AutoMace extends Module {
         slamExecuted = false;
         maceHit = false;
         slamTick = 0;
+        takeOffExecuted = false;
+        takeOffTick = 0;
+        takeOffWaitCounter = 0;
         attackTimer.reset();
     }
 
@@ -252,6 +346,9 @@ public class AutoMace extends Module {
         slamExecuted = false;
         maceHit = false;
         slamTick = 0;
+        takeOffExecuted = false;
+        takeOffTick = 0;
+        takeOffWaitCounter = 0;
         attackTimer.reset();
     }
 }

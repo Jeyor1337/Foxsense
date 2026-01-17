@@ -10,6 +10,7 @@ import cn.jeyor1337.foxsense.base.module.ModuleType;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AimAssist;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AntiMiss;
 import cn.jeyor1337.foxsense.base.module.impl.combat.AutoMace;
+import cn.jeyor1337.foxsense.base.module.impl.combat.JumpReset;
 import cn.jeyor1337.foxsense.base.module.impl.combat.STap;
 import cn.jeyor1337.foxsense.base.module.impl.combat.ShieldBreaker;
 import cn.jeyor1337.foxsense.base.module.impl.combat.StunCob;
@@ -17,6 +18,7 @@ import cn.jeyor1337.foxsense.base.module.impl.combat.TriggerBot;
 import cn.jeyor1337.foxsense.base.module.impl.combat.WTap;
 import cn.jeyor1337.foxsense.base.module.impl.misc.PearlCatch;
 import cn.jeyor1337.foxsense.base.module.impl.misc.TestModule;
+import cn.jeyor1337.foxsense.base.module.impl.misc.WindCharge;
 import cn.jeyor1337.foxsense.base.module.impl.movement.AutoHeadHitter;
 import cn.jeyor1337.foxsense.base.module.impl.movement.Flight;
 import cn.jeyor1337.foxsense.base.module.impl.movement.Sprint;
@@ -63,6 +65,8 @@ public class ModuleManager {
         this.registerModule(new XRay());
         this.registerModule(new SpeedMine());
         this.registerModule(new Flight());
+        this.registerModule(new JumpReset());
+        this.registerModule(new WindCharge());
 
         modules.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName()));
         modulesByType.values().forEach(list -> list.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName())));

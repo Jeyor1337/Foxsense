@@ -43,6 +43,7 @@ public class TriggerBot extends Module {
     private final BooleanValue ignoreCrystals = new BooleanValue("No Crystals", true);
     private final BooleanValue autoUnBlock = new BooleanValue("Auto UnBlock", false);
     private final BooleanValue autoUnSprint = new BooleanValue("Auto UnSprint", false);
+    private final BooleanValue autoUnSprintOnJump = new BooleanValue("UnSprint On Jump", false, autoUnSprint::getValue);
     private final BooleanValue respectShields = new BooleanValue("Ignore Shields", false);
     private final BooleanValue ignoreUsing = new BooleanValue("Ignore Using Item", false);
     private final BooleanValue useOnlySwordOrAxe = new BooleanValue("Only Sword or Axe", true);
@@ -69,7 +70,7 @@ public class TriggerBot extends Module {
                 axePostDelayMin, axePostDelayMax,
                 reactionTimeMin, reactionTimeMax,
                 cooldownMode, critMode,
-                autoUnBlock, autoUnSprint,
+                autoUnBlock, autoUnSprint, autoUnSprintOnJump,
                 ignorePassiveMobs, ignoreCrystals,
                 respectShields, ignoreUsing, ignoreInvisible,
                 onlyWhenMouseDown, useOnlySwordOrAxe,
@@ -298,7 +299,13 @@ public class TriggerBot extends Module {
             }
         }
         if (autoUnSprint.isEnabled() && mc.player.isSprinting()) {
-            mc.player.setSprinting(false);
+            if (autoUnSprintOnJump.isEnabled()) {
+                if (mc.options.jumpKey.isPressed()) {
+                    mc.player.setSprinting(false);
+                }
+            } else {
+                mc.player.setSprinting(false);
+            }
         }
         ((MinecraftClientAccessor) mc).invokeDoAttack();
         if (samePlayer.isEnabled() && target != null) {

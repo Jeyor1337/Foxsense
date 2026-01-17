@@ -20,6 +20,9 @@ public class ConfigPanel extends Component {
     }
 
     private void loadConfigs() {
+        if (Foxsense.getConfigManager() == null) {
+            return;
+        }
         configs.clear();
         for (cn.jeyor1337.foxsense.base.config.Config config : Foxsense.getConfigManager().getConfigs()) {
             configs.add(config.getName());
@@ -28,6 +31,8 @@ public class ConfigPanel extends Component {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        loadConfigs();
+
         RenderUtil.drawRect(context, x, y, width, 16, 0xFF1A1A1A);
         RenderUtil.drawGradientRect(context, x, y, width, 16, 0xFF0066CC, 0xFF0044AA);
 
@@ -76,7 +81,13 @@ public class ConfigPanel extends Component {
                     String configName = configs.get(i);
                     cn.jeyor1337.foxsense.base.config.Config config = Foxsense.getConfigManager().getConfig(configName);
                     if (config != null) {
-                        Foxsense.getConfigManager().saveConfig(config);
+                        Foxsense.getConfigManager().deleteConfig(config);
+                        if (selectedIndex == i) {
+                            selectedIndex = -1;
+                        } else if (selectedIndex > i) {
+                            selectedIndex--;
+                        }
+                        loadConfigs();
                     }
                 }
                 return;

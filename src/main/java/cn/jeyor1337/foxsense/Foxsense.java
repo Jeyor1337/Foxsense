@@ -26,8 +26,8 @@ public class Foxsense {
         instance = this;
         mc = MinecraftClient.getInstance();
 
-        eventManager = new EventManager();
         moduleManager = new ModuleManager();
+        eventManager = new EventManager();
         commandManager = new CommandManager();
         configManager = new ConfigManager(new File(mc.runDirectory, "foxsense"), moduleManager);
 

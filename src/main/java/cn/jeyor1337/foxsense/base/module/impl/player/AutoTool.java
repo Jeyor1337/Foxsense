@@ -25,7 +25,7 @@ public class AutoTool extends Module {
     private int previousSlot = -1;
 
     public AutoTool() {
-        super("Auto Tool", "Automatically switches to the best tool", ModuleType.PLAYER);
+        super("AutoTool", "Automatically switches to the best tool", ModuleType.PLAYER);
         this.addValues(delay, returnToPrevious, onlyWhenSneaking, preventLowDurability, durabilityThreshold);
     }
 

@@ -22,7 +22,7 @@ public class AutoMLG extends Module {
     private boolean changedPitch;
 
     public AutoMLG() {
-        super("Auto MLG", "Places water before landing", ModuleType.PLAYER);
+        super("AutoMLG", "Places water before landing", ModuleType.PLAYER);
         this.addValues(fallDistance, pickUp);
     }
 

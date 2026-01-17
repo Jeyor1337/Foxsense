@@ -42,7 +42,7 @@ public class ShieldBreaker extends Module {
     private boolean lastAttackPressed = false;
 
     public ShieldBreaker() {
-        super("Shield Breaker", "Automatically breaks the opponent's shield", ModuleType.COMBAT);
+        super("ShieldBreaker", "Automatically breaks the opponent's shield", ModuleType.COMBAT);
         addValues(mode, cps, reactionDelay, swapDelay, attackDelay, swapBackDelay,
                 revertSlot, rayTraceCheck, disableIfUsingItem);
     }

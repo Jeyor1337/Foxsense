@@ -1,7 +1,5 @@
 package cn.jeyor1337.foxsense.base.module.impl.misc;
 
-import org.lwjgl.glfw.GLFW;
-
 import cn.jeyor1337.foxsense.base.module.Module;
 import cn.jeyor1337.foxsense.base.module.ModuleType;
 import cn.jeyor1337.foxsense.base.value.BooleanValue;
@@ -22,7 +20,7 @@ public class TestModule extends Module {
 
     public TestModule() {
         super("TestModule", ModuleType.MISC);
-        setKeybind(GLFW.GLFW_KEY_X);
+        // setKeybind(GLFW.GLFW_KEY_X);
         addValues(modeValue, booleanValue, anotherBooleanValue, numberValue, colorValue);
     }
 
