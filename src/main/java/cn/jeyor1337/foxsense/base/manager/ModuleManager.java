@@ -16,6 +16,7 @@ import cn.jeyor1337.foxsense.base.module.impl.combat.ShieldBreaker;
 import cn.jeyor1337.foxsense.base.module.impl.combat.StunCob;
 import cn.jeyor1337.foxsense.base.module.impl.combat.TriggerBot;
 import cn.jeyor1337.foxsense.base.module.impl.combat.WTap;
+import cn.jeyor1337.foxsense.base.module.impl.misc.AimDataCollector;
 import cn.jeyor1337.foxsense.base.module.impl.misc.PearlCatch;
 import cn.jeyor1337.foxsense.base.module.impl.misc.TestModule;
 import cn.jeyor1337.foxsense.base.module.impl.misc.WindCharge;
@@ -67,6 +68,7 @@ public class ModuleManager {
         this.registerModule(new Flight());
         this.registerModule(new JumpReset());
         this.registerModule(new WindCharge());
+        this.registerModule(new AimDataCollector());
 
         modules.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName()));
         modulesByType.values().forEach(list -> list.sort((m1, m2) -> m1.getName().compareToIgnoreCase(m2.getName())));

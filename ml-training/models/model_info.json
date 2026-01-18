@@ -1,0 +1,22 @@
+{
+  "model_type": "simple",
+  "input_dim": 6,
+  "output_dim": 2,
+  "input_features": [
+    "deltaYaw",
+    "deltaPitch",
+    "deltaX",
+    "deltaY",
+    "deltaZ",
+    "distance"
+  ],
+  "output_features": [
+    "outputDeltaYaw",
+    "outputDeltaPitch"
+  ],
+  "hidden_dims": [
+    64,
+    32
+  ],
+  "onnx_path": "aim_model.onnx"
+}

@@ -3,6 +3,9 @@ package cn.jeyor1337.foxsense.base.module.impl.combat;
 import com.cubk.event.annotations.EventTarget;
 
 import cn.jeyor1337.foxsense.base.event.EventRender3D;
+import cn.jeyor1337.foxsense.base.ml.AimFeatures;
+import cn.jeyor1337.foxsense.base.ml.AimOutput;
+import cn.jeyor1337.foxsense.base.ml.MLAimPredictor;
 import cn.jeyor1337.foxsense.base.module.Module;
 import cn.jeyor1337.foxsense.base.module.ModuleType;
 import cn.jeyor1337.foxsense.base.util.item.ItemUtils;
@@ -21,18 +24,23 @@ import net.minecraft.util.math.Vec3d;
 
 public class AimAssist extends Module {
 
-    private final NumberValue maxYawSpeed = new NumberValue("Max Yaw Speed", 2.0, 0.1, 5.0, 0.1);
-    private final NumberValue minYawSpeed = new NumberValue("Min Yaw Speed", 2.0, 0.1, 5.0, 0.1);
+    private final ModeValue aimMode = new ModeValue("Aim Mode", new String[] { "Normal", "ML" }, "Normal");
+
+    private final NumberValue maxYawSpeed = new NumberValue("Max Yaw Speed", 2.0, 0.1, 5.0, 0.1,
+            () -> aimMode.getValue().equals("Normal"));
+    private final NumberValue minYawSpeed = new NumberValue("Min Yaw Speed", 2.0, 0.1, 5.0, 0.1,
+            () -> aimMode.getValue().equals("Normal"));
 
     private final BooleanValue pitchEnabled = new BooleanValue("Pitch", true);
     private final NumberValue minPitchSpeed = new NumberValue("Min Pitch Speed", 2.0, 0.1, 5.0, 0.1,
-            pitchEnabled::getValue);
+            () -> aimMode.getValue().equals("Normal") && pitchEnabled.getValue());
     private final NumberValue maxPitchSpeed = new NumberValue("Max Pitch Speed", 2.0, 0.1, 5.0, 0.1,
-            pitchEnabled::getValue);
+            () -> aimMode.getValue().equals("Normal") && pitchEnabled.getValue());
 
     private final NumberValue fov = new NumberValue("FOV", 90.0, 10.0, 180.0, 1.0);
     private final NumberValue range = new NumberValue("Range", 4.5, 1.0, 10.0, 0.1);
-    private final NumberValue smoothing = new NumberValue("Smoothing", 10.0, 1.0, 100.0, 0.5);
+    private final NumberValue smoothing = new NumberValue("Smoothing", 10.0, 1.0, 100.0, 0.5,
+            () -> aimMode.getValue().equals("Normal"));
     private final NumberValue pitchThreshold = new NumberValue("Pitch Threshold", 60.0, 0.0, 90.0, 1.0,
             pitchEnabled::getValue);
 
@@ -44,11 +52,19 @@ public class AimAssist extends Module {
     private final BooleanValue ignoreBlocks = new BooleanValue("Ignore Blocks", true);
     private final BooleanValue aimNearestPoint = new BooleanValue("Aim Nearest Point", false);
 
-    private final BooleanValue prediction = new BooleanValue("Prediction", false);
-    private final ModeValue predictionMode = new cn.jeyor1337.foxsense.base.value.ModeValue(
-            "Prediction Mode", new String[] { "Simple", "Adaptive", "Smart" }, "Smart", prediction::getValue);
+    private final BooleanValue prediction = new BooleanValue("Prediction", false,
+            () -> aimMode.getValue().equals("Normal"));
+    private final ModeValue predictionMode = new ModeValue(
+            "Prediction Mode", new String[] { "Simple", "Adaptive", "Smart" }, "Smart",
+            () -> aimMode.getValue().equals("Normal") && prediction.getValue());
     private final NumberValue predictionStrength = new NumberValue("Prediction Strength", 1.0, 0.0, 2.0, 0.1,
-            () -> prediction.getValue() && !predictionMode.getValue().equals("Smart"));
+            () -> aimMode.getValue().equals("Normal") && prediction.getValue()
+                    && !predictionMode.getValue().equals("Smart"));
+
+    private final NumberValue mlScale = new NumberValue("ML Scale", 1.0, 0.1, 3.0, 0.1,
+            () -> aimMode.getValue().equals("ML"));
+
+    private final BooleanValue gcdFix = new BooleanValue("GCD Fix", true);
 
     private Entity currentTarget = null;
     private long lastUpdateTime = 0;
@@ -61,13 +77,15 @@ public class AimAssist extends Module {
     private Vec3d lastSmartVelocity = Vec3d.ZERO;
     private long lastSmartUpdateTime = 0;
 
+    private boolean mlInitialized = false;
+
     public AimAssist() {
         super("AimAssist", "Gives you assistance on your aim", ModuleType.COMBAT);
         addValues(
-                maxYawSpeed, minYawSpeed, maxPitchSpeed, minPitchSpeed, fov, range, smoothing,
+                aimMode, maxYawSpeed, minYawSpeed, maxPitchSpeed, minPitchSpeed, fov, range, smoothing,
                 pitchThreshold,
                 pitchEnabled, targetPlayers, targetMobs, weaponsOnly, throughWalls, disableOnTarget, ignoreBlocks,
-                aimNearestPoint, prediction, predictionMode, predictionStrength);
+                aimNearestPoint, prediction, predictionMode, predictionStrength, mlScale, gcdFix);
     }
 
     @EventTarget
@@ -112,7 +130,67 @@ public class AimAssist extends Module {
 
             Vec3d aimPos = getAimPosition(currentTarget);
             float[] rotation = calculateRotation(aimPos);
-            applySmoothAiming(rotation[0], rotation[1]);
+
+            if (aimMode.getValue().equals("ML")) {
+                applyMLAiming(currentTarget, aimPos, rotation[0], rotation[1]);
+            } else {
+                applySmoothAiming(rotation[0], rotation[1]);
+            }
+        }
+    }
+
+    private void applyMLAiming(Entity target, Vec3d aimPos, float targetYaw, float targetPitch) {
+        if (!mlInitialized) {
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        if (lastUpdateTime == 0) {
+            lastUpdateTime = currentTime;
+            return;
+        }
+
+        float deltaTime = (currentTime - lastUpdateTime) / 1000.0f;
+        lastUpdateTime = currentTime;
+
+        if (deltaTime < 0.001f || deltaTime > 0.1f)
+            return;
+
+        float currentYaw = mc.player.getYaw();
+        float currentPitch = mc.player.getPitch();
+
+        float yawDiff = MathHelper.wrapDegrees(targetYaw - currentYaw);
+        float pitchDiff = targetPitch - currentPitch;
+
+        Vec3d eyePos = mc.player.getEyePos();
+        float deltaX = (float) (aimPos.x - eyePos.x);
+        float deltaY = (float) (aimPos.y - eyePos.y);
+        float deltaZ = (float) (aimPos.z - eyePos.z);
+        float distance = (float) mc.player.distanceTo(target);
+
+        AimFeatures features = new AimFeatures(
+                yawDiff,
+                pitchDiff,
+                deltaX,
+                deltaY,
+                deltaZ,
+                distance);
+
+        AimOutput output = MLAimPredictor.getInstance().predict(features);
+
+        float scale = mlScale.getValue().floatValue();
+        float newYaw = currentYaw + output.deltaYaw * scale;
+        float newPitch = currentPitch + output.deltaPitch * scale;
+
+        if (gcdFix.isEnabled()) {
+            newYaw = fixRotation(currentYaw, newYaw);
+        }
+        mc.player.setYaw(newYaw);
+        if (pitchEnabled.isEnabled()) {
+            if (gcdFix.isEnabled()) {
+                newPitch = fixRotation(currentPitch, newPitch);
+            }
+            mc.player.setPitch(MathHelper.clamp(newPitch, -89f, 89f));
         }
     }
 
@@ -159,7 +237,7 @@ public class AimAssist extends Module {
     private Vec3d getAimPosition(Entity entity) {
         Vec3d basePos = aimNearestPoint.isEnabled() ? getNearestPoint(entity) : getChestPosition(entity);
 
-        if (!prediction.isEnabled()) {
+        if (!prediction.isEnabled() || aimMode.getValue().equals("ML")) {
             return basePos;
         }
 
@@ -317,10 +395,16 @@ public class AimAssist extends Module {
         float lerpFactor = eased * (smoothing.getValue().floatValue() / 10f) * deltaTime;
         float newYaw = MathHelper.lerp(lerpFactor, currentYaw, currentYaw + yawDiff);
 
+        if (gcdFix.isEnabled()) {
+            newYaw = fixRotation(currentYaw, newYaw);
+        }
         mc.player.setYaw(newYaw);
 
         if (pitchEnabled.isEnabled()) {
             float newPitch = MathHelper.lerp(lerpFactor, currentPitch, currentPitch + pitchDiff);
+            if (gcdFix.isEnabled()) {
+                newPitch = fixRotation(currentPitch, newPitch);
+            }
             mc.player.setPitch(MathHelper.clamp(newPitch, -89f, 89f));
         }
     }
@@ -345,6 +429,20 @@ public class AimAssist extends Module {
         return min + (float) Math.random() * (max - min);
     }
 
+    private double getGCD() {
+        double d = mc.options.getMouseSensitivity().getValue() * 0.6000000238418579 + 0.20000000298023224;
+        double e = d * d * d;
+        double f = e * 8.0;
+        return f;
+    }
+
+    private float fixRotation(float current, float target) {
+        float gcd = (float) getGCD();
+        float delta = target - current;
+        delta -= delta % gcd;
+        return current + delta;
+    }
+
     private boolean isHoldingWeapon() {
         if (mc.player == null)
             return false;
@@ -358,6 +456,13 @@ public class AimAssist extends Module {
     public void onEnable() {
         super.onEnable();
         lastUpdateTime = System.currentTimeMillis();
+
+        if (aimMode.getValue().equals("ML")) {
+            mlInitialized = MLAimPredictor.getInstance().initialize();
+            if (!mlInitialized) {
+                System.out.println("[AimAssist] ML model failed to load, falling back to Normal mode");
+            }
+        }
     }
 
     @Override
@@ -369,5 +474,6 @@ public class AimAssist extends Module {
         lastSmartTarget = null;
         lastSmartVelocity = Vec3d.ZERO;
         lastSmartUpdateTime = 0;
+        mlInitialized = false;
     }
 }
