@@ -79,6 +79,9 @@ public class AimAssist extends Module {
 
     private boolean mlInitialized = false;
 
+    private float accumulatedYaw = 0f;
+    private float accumulatedPitch = 0f;
+
     public AimAssist() {
         super("AimAssist", "Gives you assistance on your aim", ModuleType.COMBAT);
         addValues(
@@ -179,18 +182,30 @@ public class AimAssist extends Module {
         AimOutput output = MLAimPredictor.getInstance().predict(features);
 
         float scale = mlScale.getValue().floatValue();
-        float newYaw = currentYaw + output.deltaYaw * scale;
-        float newPitch = currentPitch + output.deltaPitch * scale;
 
         if (gcdFix.isEnabled()) {
-            newYaw = fixRotation(currentYaw, newYaw);
-        }
-        mc.player.setYaw(newYaw);
-        if (pitchEnabled.isEnabled()) {
-            if (gcdFix.isEnabled()) {
-                newPitch = fixRotation(currentPitch, newPitch);
+            float gcd = (float) getGCD();
+
+            accumulatedYaw += output.deltaYaw * scale;
+            float yawToApply = accumulatedYaw - (accumulatedYaw % gcd);
+            if (Math.abs(yawToApply) >= gcd) {
+                mc.player.setYaw(currentYaw + yawToApply);
+                accumulatedYaw -= yawToApply;
             }
-            mc.player.setPitch(MathHelper.clamp(newPitch, -89f, 89f));
+
+            if (pitchEnabled.isEnabled()) {
+                accumulatedPitch += output.deltaPitch * scale;
+                float pitchToApply = accumulatedPitch - (accumulatedPitch % gcd);
+                if (Math.abs(pitchToApply) >= gcd) {
+                    mc.player.setPitch(MathHelper.clamp(currentPitch + pitchToApply, -89f, 89f));
+                    accumulatedPitch -= pitchToApply;
+                }
+            }
+        } else {
+            mc.player.setYaw(currentYaw + output.deltaYaw * scale);
+            if (pitchEnabled.isEnabled()) {
+                mc.player.setPitch(MathHelper.clamp(currentPitch + output.deltaPitch * scale, -89f, 89f));
+            }
         }
     }
 
@@ -475,5 +490,7 @@ public class AimAssist extends Module {
         lastSmartVelocity = Vec3d.ZERO;
         lastSmartUpdateTime = 0;
         mlInitialized = false;
+        accumulatedYaw = 0f;
+        accumulatedPitch = 0f;
     }
 }
